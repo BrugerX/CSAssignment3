@@ -57,6 +57,12 @@ class Accelerator extends Module {
   dMux(3) := Rs(3) === 0.U(2.W)
   dMux(4) := Rs(4) === 0.U(2.W)
 
+  //Default values
+  io.dataWrite := 0.U
+  io.address := x_0 + y_0*20.U
+  io.writeEnable := false.B
+  io.done := false.B
+
 
 
   //FSMD switch
