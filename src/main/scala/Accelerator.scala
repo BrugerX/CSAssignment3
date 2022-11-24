@@ -38,7 +38,7 @@ class Accelerator extends Module {
 
 
   //c) truth_value
-  val c = Bool ()
+  val c = RegInit(false.B)
   //c) circuit
   val cMux = Wire(Vec(5, Bool()))
   cMux(0) := Rs(0) === 1.U(2.W)
@@ -48,7 +48,7 @@ class Accelerator extends Module {
   cMux(4) := Rs(4) === 1.U(2.W)
 
   //d) truth value
-  val d = Bool ()
+  val d = RegInit(false.B)
   //d) circuit
   val dMux = Wire(Vec(5, Bool()))
   dMux(0) := Rs(0) === 0.U(2.W)
@@ -113,8 +113,8 @@ class Accelerator extends Module {
 
     is(checking) {
 
-      c := cMux(0)||cMux(1)||cMux(2)||cMux(3)||cMux(4)
-      d := dMux(0)||dMux(1)||dMux(2)||dMux(3)||dMux(4)
+      c := cMux(0)|cMux(1)|cMux(2)|cMux(3)|cMux(4)
+      d := dMux(0)|dMux(1)|dMux(2)|dMux(3)|dMux(4)
 
       when(c){
         //Save
