@@ -25,12 +25,8 @@ class Accelerator extends Module {
   val Zero_Vector = RegInit(VecInit(Seq.fill(20)(0.U(2.W))))
 
   //Coordinates
-  val current_read = RegInit(0.U(2.W))
   val y_0 = RegInit(0.U(32.W))
   val x_0 = RegInit(1.U(32.W))
-  val x_1 = RegInit(1.U(32.W))
-  val y_1 = RegInit(1.U(32.W))
-  val whichRs = RegInit(0.U(3.W)) //Used to save to the correct star Register
   val Rs =  RegInit(VecInit(Seq.fill(5)(0.U(2.W)))) //The star register
 
 
@@ -136,8 +132,6 @@ class Accelerator extends Module {
         stateReg := done
       }
 
-      c := cMux(0)||cMux(1)||cMux(2)||cMux(3)||cMux(4)
-      d := dMux(0)||dMux(1)||dMux(2)||dMux(3)||dMux(4)
 
       stateReg := checking
     }
