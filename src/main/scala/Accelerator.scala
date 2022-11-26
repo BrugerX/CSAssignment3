@@ -78,7 +78,7 @@ class Accelerator extends Module {
 
       when((y_0 =/= n-2.U)){ //Hvis vi ikke er i bunden eller hjørnet
         y_0 :=  y_0 + 1.U
-        io.address := (x_0 + 1.U) + (y_0+1.U) * 20.U  //We load the bit to the right of this
+        io.address := (x_0) + (y_0+1.U) * 20.U  //We load the bit to the right of this
 
         //Start(x_0,y_0)
 
@@ -109,10 +109,7 @@ class Accelerator extends Module {
         //We start at the top again and move right
         y_0 := 1.U(32.W)
         x_0 := x_0 + 1.U(32.W)
-        io.address := (x_0 + 2.U) + (1.U) * 20.U  //We load the bit to the right of this
-
-        y_0 := y_0 + 1.U
-        io.address := (x_0 + 1.U) + (y_0 + 1.U) * 20.U //We load the bit to the right of this
+        io.address := (x_0 + 1.U) + (1.U) * 20.U  //We load the bit to the right of this
 
         //Start(x_0,y_0)
 
@@ -146,7 +143,6 @@ class Accelerator extends Module {
     }
 
     is(checking) {
-      io.writeEnable := false.B
 
 
 
@@ -158,44 +154,53 @@ class Accelerator extends Module {
         stateReg := move
       } .elsewhen(dMux(0)||dMux(1)||dMux(2)||dMux(3)||dMux(4)){ //d)
         when(dMux(0.U)){ //We don't know about center
-          x_1 := x_0
-          y_1 := y_0
-          whichRs := 0.U
+          io.address := x_0 + y_0 * n
+          when(io.dataRead === 0.U(32.W)){
+            Rs(0.U) := 1.U(32.W)
+            Rc(y_0) := 1.U(32.W)
+          }.elsewhen(io.dataRead =/= 0.U(32.W)){
+            Rs(0.U) := 2.U(32.W)
+            Rc(y_0) := 2.U(32.W)
+          }
         } .elsewhen(!dMux(0.U) & dMux(1.U)) { //We know about center, not above
-          x_1 := x_0
-          y_1 := y_0 - 1.U
-          whichRs := 1.U
-        } .elsewhen(!dMux(0.U) & !dMux(1.U) & dMux(2.U)){
-          x_1 := x_0
-          y_1 := y_0 + 1.U
-          whichRs := 2.U
-        } .elsewhen(!dMux(0.U) & !dMux(1.U) & !dMux(2.U)){
-          x_1 := x_0 - 1.U
-          y_1 := y_0
-          whichRs := 3.U
+          io.address := x_0 + (y_0-1.U) * n
+          when(io.dataRead === 0.U(32.W)) {
+            Rs(1.U) := 1.U(32.W)
+            Rc(y_0-1.U) := 1.U(32.W)
+          }.elsewhen(io.dataRead =/= 0.U(32.W)) {
+            Rs(1.U) := 2.U(32.W)
+            Rc(y_0-1.U) := 2.U(32.W)
+          }
+        } .elsewhen(!dMux(0.U) & !dMux(1.U) & dMux(2.U)){ //We don't know about below
+          io.address := x_0 + (y_0 + 1.U) * n
+          when(io.dataRead === 0.U(32.W)) {
+            Rs(2.U) := 1.U(32.W)
+            Rc(y_0 + 1.U) := 1.U(32.W)
+          }.elsewhen(io.dataRead =/= 0.U(32.W)) {
+            Rs(2.U) := 2.U(32.W)
+            Rc(y_0+ 1.U) := 2.U(32.W)
+          }
+        } .elsewhen(!dMux(0.U) & !dMux(1.U) & !dMux(2.U)){ //We don't know about left
+          io.address := (x_0-1.U) + y_0 * n
+          when(io.dataRead === 0.U(32.W)) {
+            Rs(3.U) := 1.U(32.W)
+            Rl(y_0) := 1.U(32.W)
+          }.elsewhen(io.dataRead =/= 0.U(32.W)) {
+            Rs(3.U) := 2.U(32.W)
+            Rl(y_0) := 2.U(32.W)
+          }
         }
-
-        io.address := x_1 + y_1 * n
-        Rs(whichRs) := io.dataRead
-
-        when(whichRs === 3.U){
-          Rl(y_1) := Rs(whichRs)
-        }.elsewhen(whichRs =/= 3.U){
-          Rc(y_1) := Rs(whichRs)
-        }
-
+        io.writeEnable := false.B
         stateReg := checking
 
 
-      } .elsewhen(!(dMux(0)||dMux(1)||dMux(2)||dMux(3)||dMux(4)) & !(cMux(0)||cMux(1)||cMux(2)||cMux(3)||cMux(4))){ //Neg(d) AND neg(c)
+      } .elsewhen(!(dMux(0)||dMux(1)||dMux(2)||dMux(3)||dMux(4)) && !(cMux(0)||cMux(1)||cMux(2)||cMux(3)||cMux(4))){ //Neg(d) AND neg(c)
         //Save
         io.address := x_0 + y_0 * n + 400.U
         io.writeEnable := true.B
         io.dataWrite := 255.U(32.W)
         stateReg := move
       }
-
-
 
 
     }
