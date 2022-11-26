@@ -94,10 +94,10 @@ class Accelerator extends Module {
         io.writeEnable := false.B
         when(io.dataRead === 255.U) {
           Rs(4.U) := 2.U(2.W)
-          Rr(y_0+1.U) := 1.U(2.W)
+          Rr(y_0+1.U) := 2.U(2.W)
         }.elsewhen(io.dataRead === 0.U) {
           Rs(4.U) := 1.U(2.W)
-          Rr(y_0+1.U) := 2.U(2.W)
+          Rr(y_0+1.U) := 1.U(2.W)
         }
 
       } .elsewhen((y_0 === n-2.U)&(x_0 =/= n-2.U)){ //Hvis vi er i bunden men ikke hjørnet
@@ -148,7 +148,7 @@ class Accelerator extends Module {
 
       when(cMux(0)||cMux(1)||cMux(2)||cMux(3)||cMux(4)){ //c)
         //Save
-        io.address := x_0 + y_0 * n + 400.U
+        io.address := x_0 + y_0 * n + 399.U
         io.writeEnable := true.B
         io.dataWrite := 0.U(32.W)
         stateReg := move
@@ -196,7 +196,7 @@ class Accelerator extends Module {
 
       } .elsewhen(!(dMux(0)||dMux(1)||dMux(2)||dMux(3)||dMux(4)) && !(cMux(0)||cMux(1)||cMux(2)||cMux(3)||cMux(4))){ //Neg(d) AND neg(c)
         //Save
-        io.address := x_0 + y_0 * n + 400.U
+        io.address := x_0 + y_0 * n + 399.U
         io.writeEnable := true.B
         io.dataWrite := 255.U(32.W)
         stateReg := move
