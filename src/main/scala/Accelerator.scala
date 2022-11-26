@@ -26,7 +26,7 @@ class Accelerator extends Module {
 
   //Coordinates
   val current_read = RegInit(0.U(2.W))
-  val y_0 = RegInit(1.U(32.W))
+  val y_0 = RegInit(0.U(32.W))
   val x_0 = RegInit(1.U(32.W))
   val x_1 = RegInit(1.U(32.W))
   val y_1 = RegInit(1.U(32.W))
@@ -38,7 +38,7 @@ class Accelerator extends Module {
 
 
   //c) truth_value
-  val c = RegInit(false.B)
+  val c = RegInit(true.B)
   //c) circuit
   val cMux = Wire(Vec(5, Bool()))
   cMux(0) := Rs(0) === 1.U(2.W)
@@ -78,6 +78,28 @@ class Accelerator extends Module {
 
       when((y_0 =/= n-2.U)){ //Hvis vi ikke er i bunden eller hjørnet
         y_0 :=  y_0 + 1.U
+        io.address := (x_0 + 1.U) + (y_0+1.U) * 20.U  //We load the bit to the right of this
+
+        //Start(x_0,y_0)
+
+        //a) Operation - y_0 = +1
+        Rs(0.U(2.W)) := Rc(y_0 + 1.U)
+        Rs(1.U) := Rc(y_0)
+        Rs(2.U) := Rc(y_0 + 2.U(2.W))
+        Rs(3.U) := Rl(y_0+1.U)
+        //Rs(4.U) := Rr(y_0+1.U) This will overwrite the selected value
+
+
+        //Load and set Rr
+        io.writeEnable := false.B
+        when(io.dataRead === 255.U) {
+          Rs(4.U) := 2.U(2.W)
+          Rr(y_0+1.U) := 1.U(2.W)
+        }.elsewhen(io.dataRead === 0.U) {
+          Rs(4.U) := 1.U(2.W)
+          Rr(y_0+1.U) := 2.U(2.W)
+        }
+
       } .elsewhen((y_0 === n-2.U)&(x_0 =/= n-2.U)){ //Hvis vi er i bunden men ikke hjørnet
         //b) operation - trickle left
         Rl := Rc
@@ -87,48 +109,54 @@ class Accelerator extends Module {
         //We start at the top again and move right
         y_0 := 1.U(32.W)
         x_0 := x_0 + 1.U(32.W)
+        io.address := (x_0 + 2.U) + (1.U) * 20.U  //We load the bit to the right of this
+
+        y_0 := y_0 + 1.U
+        io.address := (x_0 + 1.U) + (y_0 + 1.U) * 20.U //We load the bit to the right of this
+
+        //Start(x_0,y_0)
+
+        //a) Operation - y_0 = 1
+        Rs(0.U(2.W)) := Rc(1.U) //We have confirmed, that we can trickle left and read in the same cycle
+        Rs(1.U) := Rc(0.U) //up
+        Rs(2.U) := Rc(2.U) //down
+        Rs(3.U) := Rl(1.U)  //left
+        //Rs(4.U) := Rr(1.U) This will overwrite the selected value
+
+
+        //Load and set Rr
+        io.writeEnable := false.B
+        when(io.dataRead === 255.U) {
+          Rs(4.U) := 2.U(2.W)
+          Rr(1.U) := 1.U(2.W)
+        }.elsewhen(io.dataRead === 0.U) {
+          Rs(4.U) := 1.U(2.W)
+          Rr(1.U) := 2.U(2.W)
+        }
+
       }.elsewhen((y_0 === n-2.U)&(x_0 === n-2.U)){ //Hvis vi er i hjørnet
         io.done := true.B
         stateReg := done
       }
 
-      //Start(x_0,y_0)
-
-      //a) Operation
-      Rs(0.U(2.W)) := Rc(y_0)
-      Rs(1.U) := Rc(y_0 - 1.U(2.W))
-      Rs(2.U) := Rc(y_0 + 1.U(2.W))
-      Rs(3.U) := Rl(y_0)
-      Rs(4.U) := Rr(y_0)
-
-      //Load
-      io.address := x_0 + y_0 * n
-      io.writeEnable := false.B
-      when(io.dataRead === 255.U(32.W)) {
-        current_read := 2.U(2.W)
-      }.elsewhen(io.dataRead === 0.U(32.W)) {
-        current_read := 1.U(2.W)
-      }
-
-      //Set right register
-      Rs(4.U) := current_read
-      Rr(y_0) := Rs(4.U)
+      c := cMux(0)||cMux(1)||cMux(2)||cMux(3)||cMux(4)
+      d := dMux(0)||dMux(1)||dMux(2)||dMux(3)||dMux(4)
 
       stateReg := checking
     }
 
     is(checking) {
+      io.writeEnable := false.B
 
-      c := cMux(0)|cMux(1)|cMux(2)|cMux(3)|cMux(4)
-      d := dMux(0)|dMux(1)|dMux(2)|dMux(3)|dMux(4)
 
-      when(c){
+
+      when(cMux(0)||cMux(1)||cMux(2)||cMux(3)||cMux(4)){ //c)
         //Save
         io.address := x_0 + y_0 * n + 400.U
         io.writeEnable := true.B
         io.dataWrite := 0.U(32.W)
         stateReg := move
-      } .elsewhen(d){
+      } .elsewhen(dMux(0)||dMux(1)||dMux(2)||dMux(3)||dMux(4)){ //d)
         when(dMux(0.U)){ //We don't know about center
           x_1 := x_0
           y_1 := y_0
@@ -159,7 +187,7 @@ class Accelerator extends Module {
         stateReg := checking
 
 
-      } .elsewhen(!d & !c){
+      } .elsewhen(!(dMux(0)||dMux(1)||dMux(2)||dMux(3)||dMux(4)) & !(cMux(0)||cMux(1)||cMux(2)||cMux(3)||cMux(4))){ //Neg(d) AND neg(c)
         //Save
         io.address := x_0 + y_0 * n + 400.U
         io.writeEnable := true.B
