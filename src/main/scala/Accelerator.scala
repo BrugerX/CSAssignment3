@@ -14,11 +14,12 @@ class Accelerator extends Module {
   })
 
   //Initial
-  val idle :: move :: checking :: done :: Nil = Enum (4)
+  val idle :: move :: checking :: colourborders :: done :: Nil = Enum (5)
   val stateReg = RegInit(idle)
 
   //Registers
   val n = 20.U(32.W)
+  val counter = RegInit(0.U(32.W))
   val Rl = RegInit(VecInit(Seq.fill(20)(0.U(2.W))))
   val Rc = RegInit(VecInit(Seq.fill(20)(0.U(2.W))))
   val Rr = RegInit(VecInit(Seq.fill(20)(0.U(2.W))))
@@ -28,7 +29,6 @@ class Accelerator extends Module {
   val y_0 = RegInit(0.U(32.W))
   val x_0 = RegInit(1.U(32.W))
   val Rs =  RegInit(VecInit(Seq.fill(5)(0.U(2.W)))) //The star register
-
 
 
 
@@ -71,6 +71,7 @@ class Accelerator extends Module {
 
     is(move) {
       io.writeEnable := false.B
+      stateReg := checking
 
       when((y_0 =/= n-2.U)){ //Hvis vi ikke er i bunden eller hjørnet
         y_0 :=  y_0 + 1.U
@@ -128,12 +129,10 @@ class Accelerator extends Module {
         }
 
       }.elsewhen((y_0 === n-2.U)&(x_0 === n-2.U)){ //Hvis vi er i hjørnet
-        io.done := true.B
-        stateReg := done
+        stateReg := colourborders
       }
 
 
-      stateReg := checking
     }
 
     is(checking) {
@@ -197,6 +196,48 @@ class Accelerator extends Module {
       }
 
 
+    }
+
+    is(colourborders){
+      //Standard operationer, vi altid skal
+      io.writeEnable := true.B
+      io.dataWrite := 0.U(32.W)
+      counter := counter + 1.U
+      stateReg := colourborders
+
+
+      when(counter === 0.U){//left-top cornour
+        io.address := 400.U
+        x_0 := 1.U
+        y_0 := 0.U
+
+      }.elsewhen((0.U<counter) && (counter<(n-1.U))){  //top side
+        io.address := x_0 + y_0 * 20.U + 400.U
+        x_0 := x_0 + 1.U
+      }.elsewhen((n-1.U) === counter){ //Right-top cornour
+        io.address := x_0 + 1.U * 20.U + 400.U
+        x_0 := n-1.U
+        y_0 := 1.U
+      }.elsewhen((n<=counter) && (counter<=(2.U*n - 3.U) )){ //Right side
+        y_0 := y_0 + 1.U
+        io.address := x_0 + y_0 * 20.U + 400.U
+      }.elsewhen(counter === (2.U*n-2.U)){
+        io.address := (n-2.U) + (n-1.U) * 20.U + 400.U
+        x_0 := n-2.U
+        y_0 := n-1.U
+      }.elsewhen(((2.U*n - 2.U)<counter) && (counter<=(3.U*n - 5.U) )){
+        x_0 := x_0 - 1.U
+        io.address := x_0 + y_0 * 20.U + 400.U
+      }.elsewhen((3.U * n - 4.U) === counter){
+        io.address := 0.U + (n-2.U) * 20.U + 400.U
+        y_0 := n-2.U
+        x_0 := 0.U
+      }.elsewhen(((3.U * n - 4.U)<counter) && (counter<=(4.U*n - 6.U))){
+        io.address := x_0 + y_0 * 20.U + 400.U
+        y_0 := y_0 - 1.U
+      }.otherwise{
+        stateReg := done
+      }
     }
 
     is(done) {
