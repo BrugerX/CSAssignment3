@@ -97,7 +97,7 @@ class Accelerator extends Module {
           Rr(y_0+1.U) := 1.U(2.W)
         }
 
-      } .elsewhen((y_0 === n-2.U)&(x_0 =/= n-2.U)){ //Hvis vi er i bunden men ikke hjørnet
+      } .elsewhen((y_0 === n-2.U)&&(x_0 =/= n-2.U)){ //Hvis vi er i bunden men ikke hjørnet
         //b) operation - trickle left
         Rl := Rc
         Rc := Rr
@@ -122,13 +122,13 @@ class Accelerator extends Module {
         io.writeEnable := false.B
         when(io.dataRead === 255.U) {
           Rs(4.U) := 2.U(2.W)
-          Rr(1.U) := 1.U(2.W)
+          Rr(1.U) := 2.U(2.W)
         }.elsewhen(io.dataRead === 0.U) {
           Rs(4.U) := 1.U(2.W)
-          Rr(1.U) := 2.U(2.W)
+          Rr(1.U) := 1.U(2.W)
         }
 
-      }.elsewhen((y_0 === n-2.U)&(x_0 === n-2.U)){ //Hvis vi er i hjørnet
+      }.elsewhen((y_0 === n-2.U)&&(x_0 === n-2.U)){ //Hvis vi er i hjørnet
         stateReg := colourborders
       }
 
@@ -141,7 +141,7 @@ class Accelerator extends Module {
 
       when(cMux(0)||cMux(1)||cMux(2)||cMux(3)||cMux(4)){ //c)
         //Save
-        io.address := x_0 + y_0 * n + 399.U
+        io.address := x_0 + y_0 * n + 400.U
         io.writeEnable := true.B
         io.dataWrite := 0.U(32.W)
         stateReg := move
@@ -149,31 +149,31 @@ class Accelerator extends Module {
         when(dMux(0.U)){ //We don't know about center
           io.address := x_0 + y_0 * n
           when(io.dataRead === 0.U(32.W)){
-            Rs(0.U) := 1.U(32.W)
-            Rc(y_0) := 1.U(32.W)
+            Rs(0.U) := 1.U(2.W)
+            Rc(y_0) := 1.U(2.W)
           }.elsewhen(io.dataRead =/= 0.U(32.W)){
-            Rs(0.U) := 2.U(32.W)
-            Rc(y_0) := 2.U(32.W)
+            Rs(0.U) := 2.U(2.W)
+            Rc(y_0) := 2.U(2.W)
           }
-        } .elsewhen(!dMux(0.U) & dMux(1.U)) { //We know about center, not above
+        } .elsewhen(!dMux(0.U) && dMux(1.U)) { //We know about center, not above
           io.address := x_0 + (y_0-1.U) * n
           when(io.dataRead === 0.U(32.W)) {
-            Rs(1.U) := 1.U(32.W)
-            Rc(y_0-1.U) := 1.U(32.W)
+            Rs(1.U) := 1.U(2.W)
+            Rc(y_0-1.U) := 1.U(2.W)
           }.elsewhen(io.dataRead =/= 0.U(32.W)) {
-            Rs(1.U) := 2.U(32.W)
-            Rc(y_0-1.U) := 2.U(32.W)
+            Rs(1.U) := 2.U(2.W)
+            Rc(y_0-1.U) := 2.U(2.W)
           }
-        } .elsewhen(!dMux(0.U) & !dMux(1.U) & dMux(2.U)){ //We don't know about below
+        } .elsewhen(!dMux(0.U) && !dMux(1.U) && dMux(2.U)){ //We don't know about below
           io.address := x_0 + (y_0 + 1.U) * n
-          when(io.dataRead === 0.U(32.W)) {
+          when(io.dataRead === 0.U(2.W)) {
             Rs(2.U) := 1.U(32.W)
-            Rc(y_0 + 1.U) := 1.U(32.W)
-          }.elsewhen(io.dataRead =/= 0.U(32.W)) {
-            Rs(2.U) := 2.U(32.W)
-            Rc(y_0+ 1.U) := 2.U(32.W)
+            Rc(y_0 + 1.U) := 1.U(2.W)
+          }.elsewhen(io.dataRead =/= 0.U(2.W)) {
+            Rs(2.U) := 2.U(2.W)
+            Rc(y_0+ 1.U) := 2.U(2.W)
           }
-        } .elsewhen(!dMux(0.U) & !dMux(1.U) & !dMux(2.U)){ //We don't know about left
+        } .elsewhen(!dMux(0.U) && !dMux(1.U) && !dMux(2.U)){ //We don't know about left
           io.address := (x_0-1.U) + y_0 * n
           when(io.dataRead === 0.U(32.W)) {
             Rs(3.U) := 1.U(32.W)
@@ -189,7 +189,7 @@ class Accelerator extends Module {
 
       } .elsewhen(!(dMux(0)||dMux(1)||dMux(2)||dMux(3)||dMux(4)) && !(cMux(0)||cMux(1)||cMux(2)||cMux(3)||cMux(4))){ //Neg(d) AND neg(c)
         //Save
-        io.address := x_0 + y_0 * n + 399.U
+        io.address := x_0 + y_0 * n + 400.U
         io.writeEnable := true.B
         io.dataWrite := 255.U(32.W)
         stateReg := move
@@ -225,14 +225,14 @@ class Accelerator extends Module {
         io.address := 18.U + 19.U * 20.U + 400.U
         x_0 := n-3.U
         y_0 := n-1.U
-      }.elsewhen(((2.U*n)<counter) && (counter<=(3.U*n - 2.U))){ //Bottom side ()
+      }.elsewhen(((2.U*n)<counter) && (counter<=(3.U*n - 3.U))){ //Bottom side ()
         x_0 := x_0 - 1.U
         io.address := x_0 + y_0 * 20.U + 400.U
-      }.elsewhen((3.U * n - 1.U) === counter){ //Bottom left cornour (n = 58)
+      }.elsewhen((3.U * n - 2.U) === counter){ //Bottom left cornour (n = 58)
         io.address := 0.U + (n-2.U) * 20.U + 400.U
         y_0 := n-2.U
         x_0 := 0.U
-      }.elsewhen(((3.U * n - 1.U)<counter) && (counter<=(4.U*n - 4.U))){ //Left side, (59<n<76)
+      }.elsewhen(((3.U * n - 2.U)<counter) && (counter<=(4.U*n - 3.U))){ //Left side, (59<n<76)
         io.address := x_0 + y_0 * 20.U + 400.U
         y_0 := y_0 - 1.U
       }.otherwise{
